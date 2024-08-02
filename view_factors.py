@@ -1,12 +1,12 @@
-
 import numpy as np 
 from numba.experimental import jitclass # import the decorator
 import numba.types as nbt  # import the types
+from numba import njit, prange
 import pyvista as pv 
 import time
 
-spec = [("surf1_vertices", nbt.f8[:,:]), ("surf2_vertices", nbt.f8[:,:]), \
-        ("surf1_normal", nbt.f8[:]), ("surf2_normal", nbt.f8[:])]
+spec = [("surf1_vertices", nbt.f8[:,::1]), ("surf2_vertices", nbt.f8[:,::1]), \
+        ("surf1_normal", nbt.f8[::1]), ("surf2_normal", nbt.f8[::1])]
 
 @jitclass(spec)
 class ViewFactor(object):
@@ -90,7 +90,19 @@ class ViewFactor(object):
                 hits += 1
         view_factor = hits / num_rays
         return view_factor
-            
+    
+#since numba doesn't support parallelizing loops within the class, made one 
+#more function outside the class to parllelize for loop
+@njit(parallel=True)
+def compute_vf(num_rays, surf1_vertices, surf1_normal, surf2_vertices, surf2_normal):
+    vfo = ViewFactor(surf1_vertices, surf1_normal, surf2_vertices, surf2_normal)
+    hits = 0
+    for i in prange(num_rays):
+        if vfo.check_ray_rectangle_intersection1():
+            hits += 1
+    view_factor = hits / num_rays
+    return view_factor
+    
 if __name__ == "__main__": 
     #array of vertices
     vertices = np.array([
@@ -116,7 +128,7 @@ if __name__ == "__main__":
     outward_normals=surf.compute_normals(flip_normals=False, inplace=False).cell_normals
     areas=surf.compute_cell_sizes(area=True).get_array('Area')
     
-    #visualize surfaces
+    # #visualize surfaces
     surf.plot(
             scalars=areas,
             cpos=[-1, 1, 0.5],
@@ -160,8 +172,9 @@ if __name__ == "__main__":
             surf1_normal = np.float64(inward_normals[i])
             surf2_vertices = np.float64(surf.get_cell(j).points)
             surf2_normal = np.float64(inward_normals[j])
-            vfo = ViewFactor(surf1_vertices, surf1_normal, surf2_vertices, surf2_normal)
-            vf[i,j] = vfo.compute_view_factor(100000)
+            vf[i,j] = compute_vf(1000000, surf1_vertices, surf1_normal, surf2_vertices, surf2_normal)
+            # vfo = ViewFactor(surf1_vertices, surf1_normal, surf2_vertices, surf2_normal)
+            # vf[i,j] = vfo.compute_view_factor(1000000)
     t2=time.time()
     print("view factor matrix: \n", vf)
     print("time taken is: ", t2-t1)
