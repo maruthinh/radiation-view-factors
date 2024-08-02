@@ -16,6 +16,8 @@ view factor matrix:
  [0.091866 0.091742 0.312041 0.312048 0.       0.192414] 
  [0.091341 0.092327 0.311122 0.311516 0.19291  0.      ]] 
 time taken is:  44.51021385192871
+
+with compute_vf function time taken is:  31.963478088378906
 ```
 5. The geometry considered in the above example is![geom](https://github.com/user-attachments/assets/5dc52d78-4038-4735-bd89-c3ef8ebcc353)
 6. The random ray on surface 1 and the normals of surfaces 1 and 2 are shown below![surf12](https://github.com/user-attachments/assets/33f1314a-5149-48a6-9079-e9d6a14c5699)
